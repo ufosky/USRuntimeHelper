@@ -150,7 +150,9 @@ void invokeMethod(id obj, Method m, NSArray *arguments, void *returnValue) {
                     [invocation setArgument:argLocs[j] atIndex:i];
                 }
                     break;
-                default:
+                default: {
+                    argLocs[j] = NULL;
+                }
                     break;
             }
             free(argumentType);
@@ -158,24 +160,29 @@ void invokeMethod(id obj, Method m, NSArray *arguments, void *returnValue) {
         [invocation invoke];
         for (int i = 2; i < count; ++i) {
             int j = i - 2;
-            free(argLocs[j]);
+            if (argLocs[j]) {
+                free(argLocs[j]);
+            }
         }
         free(argLocs);
-        switch (*returnType) {
-            case 'v': {
-                memset(returnValue, 0, sizeof(void *));
+        if (returnValue) {
+            switch (*returnType) {
+                case 'v': {
+                    memset(returnValue, 0, sizeof(void *));
+                }
+                    break;
+                default: {
+                    [invocation getReturnValue:returnValue];
+                }
+                    break;
             }
-                break;
-            default: {
-                [invocation getReturnValue:returnValue];
-            }
-                break;
         }
     } else {
         if (returnValue) {
             memset(returnValue, 0, sizeof(void *));
         }
     }
+    free(returnType);
 }
 
 void invokeInstanceMethod(id obj, NSString *selectorName, NSArray *arguments, void *returnValue) {
