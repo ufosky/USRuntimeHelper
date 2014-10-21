@@ -26,8 +26,9 @@ void invokeMethod(id obj, Method m, NSArray *arguments, void *returnValue) {
             id arg = [arguments objectAtIndex:j];
             char *argumentType = method_copyArgumentType(m, i);
             if (arg == [NSNull null]) {
-                argLocs[j] = malloc(sizeof(arg));
-                memset(&argLocs[j], 0, sizeof(arg));
+                void *v = NULL;
+                argLocs[j] = malloc(sizeof(v));
+                memcpy(argLocs[j], &v, sizeof(v));
                 [invocation setArgument:argLocs[j] atIndex:i];
                 continue;
             }
