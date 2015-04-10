@@ -14,4 +14,6 @@ void US_invokeClassMethodByName(NSString *className, NSString *selectorName, NSA
 void US_swizzleInstanceMethod(Class c, SEL orig, SEL new);
 void US_swizzleClassMethod(Class c, SEL orig, SEL new);
 void US_replaceClassMethod(Class c, SEL sel, SEL backup, IMP imp);
+void US_replaceClassMethodByName(Class c, NSString *selName, NSString *backupName, IMP imp);
 void US_replaceInstanceMethod(Class c, SEL sel, SEL backup, IMP imp);
+void US_replaceInstanceMethodByName(Class c, NSString *selName, NSString *backupName, IMP imp);

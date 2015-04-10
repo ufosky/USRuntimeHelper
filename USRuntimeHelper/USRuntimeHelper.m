@@ -253,6 +253,10 @@ void US_replaceClassMethod(Class c, SEL sel, SEL backup, IMP imp) {
   US_swizzleClassMethod(c, oldSel, newSel);
 }
 
+void US_replaceClassMethodByName(Class c, NSString *selName, NSString *backupName, IMP imp) {
+  US_replaceClassMethod(c, NSSelectorFromString(selName), NSSelectorFromString(backupName), imp);
+}
+
 void US_replaceInstanceMethod(Class c, SEL sel, SEL backup, IMP imp) {
   Class metac = c;
   SEL oldSel = sel;
@@ -272,4 +276,8 @@ void US_replaceInstanceMethod(Class c, SEL sel, SEL backup, IMP imp) {
   //  NSString *types = [NSString stringWithFormat:@"%s%@%s", @encode(BOOL), @"@:@@", "^"];
   BOOL success = class_addMethod(metac, newSel, imp, [types UTF8String]);
   US_swizzleInstanceMethod(c, oldSel, newSel);
+}
+
+void US_replaceInstanceMethodByName(Class c, NSString *selName, NSString *backupName, IMP imp) {
+  US_replaceInstanceMethod(c, NSSelectorFromString(selName), NSSelectorFromString(backupName), imp);
 }
