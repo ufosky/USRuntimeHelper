@@ -20,7 +20,7 @@ static NSDictionary *unserializeJSONP(id self, SEL _cmd, NSString *jsonp) {
     }
     [args addObject:v];
     void *buf;
-    invokeClassMethod([self class], @"_unserializeJSONP:", args, &buf);
+    US_invokeClassMethod([self class], @"_unserializeJSONP:", args, &buf);
     NSDictionary *result = (__bridge id)buf;
     return result;
 }
@@ -31,7 +31,7 @@ static NSDate *expireDateWithOffset(id self, SEL _cmd, NSInteger offset) {
     NSNumber *v = [NSNumber numberWithInteger:offset];
     [args addObject:v];
     void *buf;
-    invokeClassMethod([self class], @"_expireDateWithOffset:", args, &buf);
+    US_invokeClassMethod([self class], @"_expireDateWithOffset:", args, &buf);
     NSDate *result = (__bridge id)buf;
     return result;
 }
@@ -42,7 +42,7 @@ static int aintmethod(id self, SEL _cmd, int *a) {
     NSValue *v = [NSValue valueWithPointer:a];
     [args addObject:v];
     int result;
-    invokeInstanceMethod(self, @"_aintmethod:", args, &result);
+    US_invokeInstanceMethod(self, @"_aintmethod:", args, &result);
     return result;
 }
 
@@ -50,7 +50,7 @@ static int *pointerResult(id self, SEL _cmd) {
     NSLog(@"%s", __PRETTY_FUNCTION__);
     NSMutableArray *args = [NSMutableArray array];
     int *result;
-    invokeInstanceMethod(self, @"_pointerResult", args, &result);
+    US_invokeInstanceMethod(self, @"_pointerResult", args, &result);
     return result;
 
 }
@@ -83,38 +83,30 @@ static int *pointerResult(id self, SEL _cmd) {
 }
 
 + (void)load {
-    Class c = object_getClass([self class]);
-    SEL oldSel = NSSelectorFromString(@"unserializeJSONP:");
-    SEL newSel = NSSelectorFromString(@"_unserializeJSONP:");
+  {
+    SEL sel = NSSelectorFromString(@"unserializeJSONP:");
+    SEL backup = NSSelectorFromString(@"_unserializeJSONP:");
     
-    //ret,self,_cmd,args...
-    NSString *types = [NSString stringWithFormat:@"%@", @"@@:@"];
-    BOOL success = class_addMethod(c, newSel, (IMP) unserializeJSONP, [types UTF8String]);
-    swizzleClassMethod([self class], oldSel, newSel);
+    US_replaceClassMethod(self, sel, backup, (IMP)unserializeJSONP);
+  }
+  {
+    SEL sel = NSSelectorFromString(@"expireDateWithOffset:");
+    SEL backup = NSSelectorFromString(@"_expireDateWithOffset:");
     
-    c = object_getClass([self class]);
-    oldSel = NSSelectorFromString(@"expireDateWithOffset:");
-    newSel = NSSelectorFromString(@"_expireDateWithOffset:");
-    types = [NSString stringWithFormat:@"%@%s", @"@@:", @encode(NSInteger)];
-    success = class_addMethod(c, newSel, (IMP) expireDateWithOffset, [types UTF8String]);
-    swizzleClassMethod([self class], oldSel, newSel);
-
-    c = [self class];
-    oldSel = NSSelectorFromString(@"aintmethod:");
-    newSel = NSSelectorFromString(@"_aintmethod:");
-    types = [NSString stringWithFormat:@"%@%s", @"i@:", @encode(int *)];
-//    types = [NSString stringWithFormat:@"%@^", @"i@:"];
-    success = class_addMethod(c, newSel, (IMP) aintmethod, [types UTF8String]);
-    swizzleInstanceMethod([self class], oldSel, newSel);
-
-    c = [self class];
-    oldSel = NSSelectorFromString(@"pointerResult");
-    newSel = NSSelectorFromString(@"_pointerResult");
-    types = [NSString stringWithFormat:@"%s%@", @encode(int *), @"@:"];
-//    types = [NSString stringWithFormat:@"%@", @"^@:"];
-    success = class_addMethod(c, newSel, (IMP) pointerResult, [types UTF8String]);
-    swizzleInstanceMethod([self class], oldSel, newSel);
-
+    US_replaceClassMethod(self, sel, backup, (IMP)expireDateWithOffset);
+  }
+  {
+    SEL sel = NSSelectorFromString(@"aintmethod:");
+    SEL backup = NSSelectorFromString(@"_aintmethod:");
+    
+    US_replaceInstanceMethod(self, sel, backup, (IMP)aintmethod);
+  }
+  {
+    SEL sel = NSSelectorFromString(@"pointerResult");
+    SEL backup = NSSelectorFromString(@"_pointerResult");
+    
+    US_replaceInstanceMethod(self, sel, backup, (IMP)pointerResult);
+  }
 }
 
 - (int)aintmethod:(int *)a {

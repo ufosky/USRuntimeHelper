@@ -10,7 +10,7 @@
 
 #include <objc/runtime.h>
 
-void invokeMethod(id obj, Method m, NSArray *arguments, void *returnValue) {
+static void US_invokeMethod(id obj, Method m, NSArray *arguments, void *returnValue) {
     char *returnType = method_copyReturnType(m);
     SEL sel = method_getName(m);
     if ([obj respondsToSelector:sel]) {
@@ -186,24 +186,24 @@ void invokeMethod(id obj, Method m, NSArray *arguments, void *returnValue) {
     free(returnType);
 }
 
-void invokeInstanceMethod(id obj, NSString *selectorName, NSArray *arguments, void *returnValue) {
+void US_invokeInstanceMethod(id obj, NSString *selectorName, NSArray *arguments, void *returnValue) {
     SEL sel = NSSelectorFromString(selectorName);
     Method m = class_getInstanceMethod([obj class], sel);
-    invokeMethod(obj, m, arguments, returnValue);
+    US_invokeMethod(obj, m, arguments, returnValue);
 }
 
-void invokeClassMethod(Class cls, NSString *selectorName, NSArray *arguments, void *returnValue) {
+void US_invokeClassMethod(Class cls, NSString *selectorName, NSArray *arguments, void *returnValue) {
     SEL sel = NSSelectorFromString(selectorName);
     Method m = class_getClassMethod(cls, sel);
-    invokeMethod(cls, m, arguments, returnValue);
+    US_invokeMethod(cls, m, arguments, returnValue);
 }
 
-void invokeClassMethodByName(NSString *className, NSString *selectorName, NSArray *arguments, void *returnValue) {
+void US_invokeClassMethodByName(NSString *className, NSString *selectorName, NSArray *arguments, void *returnValue) {
     Class cls = NSClassFromString(className);
-    invokeClassMethod(cls, selectorName, arguments, returnValue);
+    US_invokeClassMethod(cls, selectorName, arguments, returnValue);
 }
 
-void swizzleInstanceMethod(Class c, SEL orig, SEL new) {
+void US_swizzleInstanceMethod(Class c, SEL orig, SEL new) {
     Method origMethod = class_getInstanceMethod(c, orig);
     Method newMethod = class_getInstanceMethod(c, new);
     if(class_addMethod(c, orig,
@@ -217,7 +217,7 @@ void swizzleInstanceMethod(Class c, SEL orig, SEL new) {
     }
 }
 
-void swizzleClassMethod(Class c, SEL orig, SEL new) {
+void US_swizzleClassMethod(Class c, SEL orig, SEL new) {
     Method origMethod = class_getClassMethod(c, orig);
     Method newMethod = class_getClassMethod(c, new);
     c = object_getClass((id)c);
@@ -230,4 +230,46 @@ void swizzleClassMethod(Class c, SEL orig, SEL new) {
     }else{
         method_exchangeImplementations(origMethod, newMethod);
     }
+}
+
+void US_replaceClassMethod(Class c, SEL sel, SEL backup, IMP imp) {
+  Class metac = object_getClass(c);
+  SEL oldSel = sel;
+  SEL newSel = backup;
+  Method m = class_getClassMethod(metac, oldSel);
+  NSMutableString *types = [[NSMutableString alloc] init];
+  char buf[20];
+  method_getReturnType(m, buf, sizeof(buf));
+  [types appendFormat:@"%s", buf];
+//  const char *typestr = method_getTypeEncoding(m);
+  uint n = method_getNumberOfArguments(m);
+  for (int i = 0; i < n; ++i) {
+    method_getArgumentType(m, i, buf, sizeof(buf));
+    [types appendFormat:@"%s", buf];
+  }
+  //ret,self,_cmd,args...
+//  NSString *types = [NSString stringWithFormat:@"%s%@%s", @encode(BOOL), @"@:@@", "^"];
+  BOOL success = class_addMethod(metac, newSel, imp, [types UTF8String]);
+  US_swizzleClassMethod(c, oldSel, newSel);
+}
+
+void US_replaceInstanceMethod(Class c, SEL sel, SEL backup, IMP imp) {
+  Class metac = c;
+  SEL oldSel = sel;
+  SEL newSel = backup;
+  Method m = class_getInstanceMethod(metac, oldSel);
+  NSMutableString *types = [[NSMutableString alloc] init];
+  char buf[20];
+  method_getReturnType(m, buf, sizeof(buf));
+  [types appendFormat:@"%s", buf];
+  //  const char *typestr = method_getTypeEncoding(m);
+  uint n = method_getNumberOfArguments(m);
+  for (int i = 0; i < n; ++i) {
+    method_getArgumentType(m, i, buf, sizeof(buf));
+    [types appendFormat:@"%s", buf];
+  }
+  //ret,self,_cmd,args...
+  //  NSString *types = [NSString stringWithFormat:@"%s%@%s", @encode(BOOL), @"@:@@", "^"];
+  BOOL success = class_addMethod(metac, newSel, imp, [types UTF8String]);
+  US_swizzleInstanceMethod(c, oldSel, newSel);
 }
